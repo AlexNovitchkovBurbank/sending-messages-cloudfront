@@ -1,0 +1,14 @@
+{
+  "name": "garys-products-ui-cloudfront",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "sls package -r us-west-2 --stage dev",
+    "dp:lcl": "sls deploy --verbose -r us-west-2 -s dev",
+    "rm:lcl": "sls remove -r us-west-2 -s dev",
+    "invalidate": "aws cloudfront create-invalidation --distribution-id E1RK7BMW5ILIXP --paths /*"
+  },
+  "devDependencies": {
+    "serverless": "3.33.0"
+  }
+}

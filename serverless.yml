@@ -1,0 +1,64 @@
+service: garys-products-ui-cloudfront
+provider:
+  name: aws
+  region: us-west-2
+  stage: dev
+  deploymentBucket:
+    name: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+resources:
+  Resources:
+    CloudFrontOriginAccessIdentity:
+      Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+      Properties:
+        CloudFrontOriginAccessIdentityConfig:
+          Comment: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+    CloudFrontDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Enabled: true
+          ViewerCertificate:
+            CloudFrontDefaultCertificate: true
+          Origins:
+            - DomainName: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}.s3.amazonaws.com
+              Id: arn:aws:s3:::${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+              S3OriginConfig:
+                OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+          DefaultCacheBehavior:
+            TargetOriginId: arn:aws:s3:::${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+            ForwardedValues:
+              QueryString: false
+            ViewerProtocolPolicy: https-only
+            AllowedMethods:
+              - GET
+              - PUT
+              - DELETE
+              - PATCH
+              - POST
+              - HEAD
+              - OPTIONS
+            CachedMethods:
+              - GET
+              - HEAD
+    OriginBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Action:
+                - s3:GetObject
+              Effect: Allow
+              Resource:
+                - !Sub
+                  - "arn:aws:s3:::${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}/*"
+                  - OriginBucketName: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}}
+              Principal:
+                "AWS": !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+
+  Outputs:
+    CloudFrontDistributionDomainName:
+      Value: !GetAtt CloudFrontDistribution.DomainName
+      Export:
+        Name: "cloudfront-distribution-domain-name"
