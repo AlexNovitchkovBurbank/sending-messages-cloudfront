@@ -1,17 +1,17 @@
-service: garys-products-ui-cloudfront
+service: sending-messages-cloudfront
 provider:
   name: aws
   region: us-west-2
   stage: dev
   deploymentBucket:
-    name: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+    name: sending-messages-codedeployment-bucket-dev
 resources:
   Resources:
     CloudFrontOriginAccessIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
       Properties:
         CloudFrontOriginAccessIdentityConfig:
-          Comment: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+          Comment: sending-messages-codedeployment-bucket-dev
     CloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
       Properties:
@@ -20,12 +20,12 @@ resources:
           ViewerCertificate:
             CloudFrontDefaultCertificate: true
           Origins:
-            - DomainName: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}.s3.amazonaws.com
-              Id: arn:aws:s3:::${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+            - DomainName: sending-messages-codedeployment-bucket-dev.s3.amazonaws.com
+              Id: arn:aws:s3:::sending-messages-codedeployment-bucket-dev
               S3OriginConfig:
                 OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
           DefaultCacheBehavior:
-            TargetOriginId: arn:aws:s3:::${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+            TargetOriginId: arn:aws:s3:::sending-messages-codedeployment-bucket-dev
             ForwardedValues:
               QueryString: false
             ViewerProtocolPolicy: https-only
@@ -43,7 +43,7 @@ resources:
     OriginBucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
-        Bucket: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}
+        Bucket: sending-messages-codedeployment-bucket-dev
         PolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -52,8 +52,8 @@ resources:
               Effect: Allow
               Resource:
                 - !Sub
-                  - "arn:aws:s3:::${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}/*"
-                  - OriginBucketName: ${cf:garys-products-ui-codedeploymentbucket-${self:provider.stage}.CodeDeploymentBucket}}
+                  - "arn:aws:s3:::sending-messages-codedeployment-bucket-dev/*"
+                  - OriginBucketName: sending-messages-codedeployment-bucket-dev
               Principal:
                 "AWS": !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
 
@@ -61,4 +61,4 @@ resources:
     CloudFrontDistributionDomainName:
       Value: !GetAtt CloudFrontDistribution.DomainName
       Export:
-        Name: "cloudfront-distribution-domain-name"
+        Name: sending-messages-cloudfront-distribution-domain-name
