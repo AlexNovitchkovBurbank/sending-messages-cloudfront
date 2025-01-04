@@ -6,7 +6,7 @@
     "test": "sls package -r us-west-2 --stage dev",
     "dp:lcl": "sls deploy --verbose -r us-west-2 -s dev",
     "rm:lcl": "sls remove -r us-west-2 -s dev",
-    "invalidate": "aws cloudfront create-invalidation --distribution-id E1RK7BMW5ILIXP --paths /*"
+    "invalidate": "aws cloudfront create-invalidation --distribution-id E2LRYHAQGDYK3B --paths /*"
   },
   "devDependencies": {
     "serverless": "3.33.0"

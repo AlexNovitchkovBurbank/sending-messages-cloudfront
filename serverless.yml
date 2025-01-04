@@ -1,17 +1,26 @@
 service: sending-messages-cloudfront
+
+custom:
+  stage: dev
 provider:
   name: aws
   region: us-west-2
-  stage: dev
   deploymentBucket:
     name: sending-messages-codedeployment-bucket-dev
+  environment:
+    ORIGIN_BUCKET_NAME: !ImportValue "sending-messages-codedeployment-bucket-dev-name"
+
 resources:
   Resources:
     CloudFrontOriginAccessIdentity:
       Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
       Properties:
         CloudFrontOriginAccessIdentityConfig:
-          Comment: sending-messages-codedeployment-bucket-dev
+          Comment:
+            Fn::Join:
+              - ''
+              - - ${self:provider.environment.ORIGIN_BUCKET_NAME}
+                - '.s3.amazonaws.com'
     CloudFrontDistribution:
       Type: AWS::CloudFront::Distribution
       Properties:
@@ -20,14 +29,24 @@ resources:
           ViewerCertificate:
             CloudFrontDefaultCertificate: true
           Origins:
-            - DomainName: sending-messages-codedeployment-bucket-dev.s3.amazonaws.com
-              Id: arn:aws:s3:::sending-messages-codedeployment-bucket-dev
+            - DomainName:
+                Fn::Join:
+                - ''
+                - - ${self:provider.environment.ORIGIN_BUCKET_NAME}
+                  - '.s3.amazonaws.com'
+              Id: ${self:provider.environment.ORIGIN_BUCKET_NAME}
               S3OriginConfig:
                 OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
           DefaultCacheBehavior:
-            TargetOriginId: arn:aws:s3:::sending-messages-codedeployment-bucket-dev
+            TargetOriginId: ${self:provider.environment.ORIGIN_BUCKET_NAME}
+            ResponseHeadersPolicyId: !Ref ResponseHeadersPolicy
             ForwardedValues:
-              QueryString: false
+              Cookies:
+                Forward: "none"
+              QueryString: "true"
+              Headers:
+                - Access-Control-Request-Headers
+                - Access-Control-Request-Method
             ViewerProtocolPolicy: https-only
             AllowedMethods:
               - GET
@@ -40,10 +59,29 @@ resources:
             CachedMethods:
               - GET
               - HEAD
+    ResponseHeadersPolicy:
+      Type: AWS::CloudFront::ResponseHeadersPolicy
+      Properties: 
+        ResponseHeadersPolicyConfig: 
+          Name: sending-messages-cloudfront-response-headers-policy-config-${self:custom.stage}
+          CorsConfig: 
+            AccessControlAllowCredentials: true
+            AccessControlAllowHeaders: 
+              Items: 
+                - "Content-Type"
+            AccessControlAllowMethods: 
+              Items: 
+                - GET
+                - HEAD
+                - OPTIONS
+            AccessControlAllowOrigins:
+              Items:
+                - "*"
+            OriginOverride: false
     OriginBucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
-        Bucket: sending-messages-codedeployment-bucket-dev
+        Bucket: ${self:provider.environment.ORIGIN_BUCKET_NAME}
         PolicyDocument:
           Version: "2012-10-17"
           Statement:
@@ -53,9 +91,35 @@ resources:
               Resource:
                 - !Sub
                   - "arn:aws:s3:::sending-messages-codedeployment-bucket-dev/*"
-                  - OriginBucketName: sending-messages-codedeployment-bucket-dev
+                  - OriginBucketName: ${self:provider.environment.ORIGIN_BUCKET_NAME}
               Principal:
                 "AWS": !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+            - Action:
+                - "s3:DeleteBucketPolicy"
+                - "s3:PutBucketPolicy"
+              Effect: Deny
+              Resource:
+                - !Sub
+                  - "arn:aws:s3:::${OriginBucketName}"
+                  - OriginBucketName: ${self:provider.environment.ORIGIN_BUCKET_NAME}
+              Principal: "*"
+              Condition:
+                ArnNotEquals:
+                  aws:PrincipalARN:
+                    - !Sub "arn:aws:iam::167345660221:user/Alex"
+            - Action:
+                - "s3:PutObject*"
+                - "s3:DeleteObject*"
+              Effect: Deny
+              Resource:
+                - !Sub
+                  - "arn:aws:s3:::${OriginBucketName}/*"
+                  - OriginBucketName: ${self:provider.environment.ORIGIN_BUCKET_NAME}
+              Principal: "*"
+              Condition:
+                ArnNotEquals:
+                  aws:PrincipalARN:
+                    - !Sub "arn:aws:iam::167345660221:user/Alex"
 
   Outputs:
     CloudFrontDistributionDomainName:
