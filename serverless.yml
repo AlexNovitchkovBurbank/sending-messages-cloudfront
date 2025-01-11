@@ -6,9 +6,9 @@ provider:
   name: aws
   region: us-west-2
   deploymentBucket:
-    name: sending-messages-codedeployment-bucket-dev
+    name: sending-messages-codedeployment-bucket-${self:custom.stage}
   environment:
-    ORIGIN_BUCKET_NAME: !ImportValue "sending-messages-codedeployment-bucket-dev-name"
+    ORIGIN_BUCKET_NAME: sending-messages-codedeployment-bucket-${self:custom.stage}
 
 resources:
   Resources:
@@ -126,3 +126,7 @@ resources:
       Value: !GetAtt CloudFrontDistribution.DomainName
       Export:
         Name: sending-messages-cloudfront-distribution-domain-name
+    CloudFrontDistributionId:
+      Value: !GetAtt CloudFrontDistribution.Id
+      Export:
+        Name: sending-messages-cloudfront-distribution-id
